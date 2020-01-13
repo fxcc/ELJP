@@ -207,7 +207,7 @@ def main():
     train_dataloader = DataLoader(train_data, shuffle=True, batch_size=batch_size)
 
     # model = BertModel.from_pretrained('bert-base-chinese')
-    model = HIBERT.from_pretrained('bert-base-chinese', doc_label=9, sentence_key_label=2)
+    model = HIBERT.from_pretrained('bert-base-chinese', doc_label=9, doc_label2=9, sentence_key_label=2)
     model.to(device)
     model.train()
 
@@ -238,10 +238,11 @@ def main():
         for i, batch in enumerate(train_dataloader):
             batch = tuple(t.to(device) for t in batch)
             input_ids, input_mask, sent_masks, annotations, penalty, prison = batch
-            print(input_ids.size(), input_mask.size(), sent_masks.size(), annotations.size(), penalty.size(),
-                  prison.size())
-            loss = model(input_ids, input_mask, sent_masks, annotations, penalty)  # penalty cls
+            # print(input_ids.size(), input_mask.size(), sent_masks.size(), annotations.size(), penalty.size(),
+            #       prison.size())
+            # loss = model(input_ids, input_mask, sent_masks, annotations, penalty)  # penalty cls
             # loss = model(input_ids, input_mask,sent_masks,annotations, prison) # prison cls
+            loss = model(input_ids, input_mask, sent_masks, annotations, penalty, prison)  # prison cls
             loss.backward()
             optimizer.step()
             model.zero_grad()

@@ -181,9 +181,9 @@ def val(model, processor, args, label_list, max_seq_length, max_sent_num, tokeni
 
 
 def main():
-    batch_size = 8
+    batch_size = 64
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    max_epoch = 32
+    max_epoch = 50
     learning_rate = 5e-5
     warmup_proportion = 0.1
 

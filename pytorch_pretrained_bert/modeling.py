@@ -1272,7 +1272,7 @@ class DocLevelBertModel(BertPreTrainedModel):
 
 
 class HIBERT(BertPreTrainedModel):
-    def __init__(self, config, doc_label, sentence_key_label=2):
+    def __init__(self, config, doc_label, doc_label2, sentence_key_label=2):
         super(HIBERT, self).__init__(config)
         self.sentence_key_label = sentence_key_label  # default is 2, means whether the sentence is key information.
         self.bert = BertModel(config)
@@ -1281,10 +1281,12 @@ class HIBERT(BertPreTrainedModel):
         self.classifier = nn.Linear(config.hidden_size, sentence_key_label)
         self.classifier2 = nn.Linear(config.hidden_size, doc_label)
         self.doc_label = doc_label
+        self.classifier3 = nn.Linear(config.hidden_size, doc_label2)
+        self.doc_label2 = doc_label2
         self.apply(self.init_bert_weights)
 
     def forward(self, input_ids, attention_mask=None, sentence_att_mask=None,
-                key_sentence_labels=None, doc_labels=None, token_type_ids=None):
+                key_sentence_labels=None, doc_labels=None, doc_labels2=None, token_type_ids=None):
         '''
 
         :param input_ids: B*ld*ls
@@ -1318,12 +1320,13 @@ class HIBERT(BertPreTrainedModel):
         doc_output = self.dropout(doc_output)
         logits = self.classifier(doc_output)
 
-        logits=torch.sigmoid(logits)
+        logits = torch.sigmoid(logits)
         key_or_not = logits[:, :, 1]
         logits2 = torch.mul(key_or_not.unsqueeze(2), doc_output)
         logits2 = torch.sum(logits2, 1)
         pooled_output = self.dropout(pooled_out)
         logits2 = self.classifier2(pooled_output + logits2)
+        logits3 = self.classifier3(pooled_output + logits2)
 
         if key_sentence_labels is not None:
             loss_fct = CrossEntropyLoss()
@@ -1340,6 +1343,12 @@ class HIBERT(BertPreTrainedModel):
             loss_fct = CrossEntropyLoss()
             loss2 = loss_fct(logits2.view(-1, self.doc_label), doc_labels.view(-1))
 
-            return loss1 + loss2  # , logits, logits2
+            # return loss1 + loss2  # , logits, logits2
+
+        if doc_labels2 is not None:
+            loss_fct = CrossEntropyLoss()
+            loss3 = loss_fct(logits3.view(-1, self.doc_label2), doc_labels2.view(-1))
+
+            return loss1 + loss2 + loss3  # , logits, logits2
         else:
-            return logits2
+            return logits2, logits3
